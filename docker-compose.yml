@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+    db:
+        image: postgres
+        ports:
+                - "5436:5432"
+        environment:
+                - POSTGRES_USER=maindb
+                - POSTGRES_PASSWORD=maindb
+                - POSTGRES_DB=maindb
+        volumes:
+                - ./dbs/postgres-data:/var/lib/postgresql
+
+    backend:
+        restart: always
+        container_name: contest
+        build: ./contest
+        command: bash -c "
+                python3 manage.py makemigrations fitness_* &&
+                python3 manage.py migrate &&
+                gunicorn fitness.wsgi:application --bind 0.0.0.0:8000 --reload"
+        volumes:
+                - ./contest:/contest
+        expose:
+                - 8000
+        depends_on:
+                - db
+    
+    nginx:
+        build: ./nginx
+        ports:
+            - 1337:80
+        depends_on:
+            - backend
